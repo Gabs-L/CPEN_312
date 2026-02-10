@@ -17,7 +17,6 @@ architecture behaviour of addsub8bit is
 	signal bMinus : unsigned(7 downto 0); --if sw9 is set to subtract, add this instead of b
 	signal carry : std_logic;
 	signal sum : unsigned(8 downto 0);
-	--signal key0_prev, key1_prev : std_logic := '1'; --assume the previous key state is 1
 
 begin
 	process (key) --latch a and b from key1 and key0 press
@@ -28,8 +27,6 @@ begin
 		if key(0) = '0' then
 			b <= unsigned(sw(7 downto 0));
 		end if;
-		--key0_prev <= key(0); --reset previous key prev states
-		--key1_prev <= key(1);
 	end process;
 
 --add/suntract selection from sw9 state
