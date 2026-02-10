@@ -5,15 +5,15 @@ use ieee.numeric_std.all;
 entity addsub_bcd is
 	port(
 	clck : in std_logic;
-	sw : in std_logic_vector(9 downto 0); --switch inputs
-	keys : in std_logic_vector(1 downto 0); --latching keys
-	hex0 : out std_logic_vector(0 to 6); --7seg display 0
-	hex1 : out std_logic_vector(0 to 6); --7seg display 1
-	hex2 : out std_logic_vector(0 to 6); --7seg display 2
-	hex3 : out std_logic_vector(0 to 6); --7seg display 3
-	hex4 : out std_logic_vector(0 to 6); --7seg display 4
-	hex5 : out std_logic_vector(0 to 6); --7seg display 5
-	ledr3 : out std_logic --overflow indicator
+	sw : in std_logic_vector(9 downto 0);
+	keys : in std_logic_vector(1 downto 0);
+	hex0 : out std_logic_vector(0 to 6);
+	hex1 : out std_logic_vector(0 to 6);
+	hex2 : out std_logic_vector(0 to 6);
+	hex3 : out std_logic_vector(0 to 6);
+	hex4 : out std_logic_vector(0 to 6);
+	hex5 : out std_logic_vector(0 to 6);
+	ledr3 : out std_logic
 	);
 end addsub_bcd;
 
@@ -103,7 +103,7 @@ begin
 					result_val := 100 - temp_val;
 					r1 <= std_logic_vector(to_unsigned(result_val / 10, 4));
 					r0 <= std_logic_vector(to_unsigned(result_val mod 10, 4));
-					o <= '0';
+					o <= '1';
 				end if;
 			else
 				if carry_msb = '1' then
@@ -114,7 +114,6 @@ begin
 			end if;
 		end if;
 	end process;
-
 	ledr3 <= o;
 	hex5_disp: bcd_7seg port map(bcd => a1, display => hex5);
 	hex4_disp: bcd_7seg port map(bcd => a0, display => hex4);
