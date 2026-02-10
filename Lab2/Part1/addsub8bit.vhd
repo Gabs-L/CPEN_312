@@ -13,7 +13,7 @@ end addsub8bit;
 
 --architecture declaration
 architecture behaviour of addsub8bit is
-	signal a, b : unsigned(7 downto 0);
+	signal a, b : unsigned(7 downto 0) := (others => '0');
 	signal bMinus : unsigned(7 downto 0); --if sw9 is set to subtract, add this instead of b
 	signal carry : std_logic;
 	signal sum : unsigned(8 downto 0);
