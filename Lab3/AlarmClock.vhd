@@ -91,9 +91,9 @@ begin
 			-- state selection
 			--
 			else
-				if switches(9) = '1' then
+				if switches(7) = '1' then
 					state <= set_time;
-				elsif switches(7) = '1' then
+				elsif switches(8) = '1' then
 					state <= set_alarm;
 				else
 					state <= run;
