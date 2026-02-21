@@ -12,7 +12,8 @@ entity AlarmClock is
 	hex2 : out std_logic_vector(0 to 6);
 	hex3 : out std_logic_vector(0 to 6);
 	hex4 : out std_logic_vector(0 to 6);
-	hex5 : out std_logic_vector(0 to 6)
+	hex5 : out std_logic_vector(0 to 6);
+	ampm : out std_logic
 	);
 end AlarmClock;
 
@@ -33,7 +34,7 @@ architecture a of AlarmClock is
 	signal s : integer range 0 to 59 := 0;
 	signal m : integer range 0 to 59 := 0;
 	signal h : integer range 1 to 12 := 12;
---	signal ispm, ispm_bf : std_logic;
+	signal ispm, aispm: std_logic;
 
 	-- alarm state signals
 	signal as : integer range 0 to 59 := 0;
@@ -49,7 +50,6 @@ architecture a of AlarmClock is
 	signal key_sync : sync_arr := (others => (others => '1'));
 	signal key_db : std_logic_vector(3 downto 0) := (others =>  '1');
 	signal key_prev : std_logic_vector(3 downto 0) := (others =>  '1');
---	signal key_press : std_logic_vector(3 downto 0);
 	
 	type states is (run, set_time, set_alarm);
 	signal state : states := run;
@@ -60,6 +60,7 @@ begin
 	
 	variable sbuff, mbuff, hbuff : integer;
 	variable sprev, mprev, hprev : integer;
+	variable ispmbuff, ispmprev : std_logic;
 	
 	begin
 	
@@ -84,6 +85,7 @@ begin
 				s <= 0;
 				m <= 0;
 				h <= 12;
+				ispm <= '0';
 				count <= 0;
 				tick <= '0';
 				
@@ -109,6 +111,7 @@ begin
 							s <= sprev;
 							m <= mprev;
 							h <= hprev;
+							ispm <= ispmprev;
 						end if;
 						
 						if count = freq then
@@ -126,6 +129,7 @@ begin
 								m <= 0;
 								if h >= 12 then
 									h <= 1;
+									ispm <= not ispm;
 								else
 									h <= h+1;
 								end if;
@@ -159,12 +163,15 @@ begin
 							h <= hbuff;
 						end if;
 					end if;
+					ispm <= switches(6);
+					
 				--set alarm =>
 				when set_alarm =>
 					if state_prev /= set_alarm then
 						sprev := s;
 						mprev := m;
 						hprev := h;
+						ispmprev := ispm;
 					end if;
 					if key_db(1) = '0' and key_prev(1) = '1' then
 						sbuff := to_integer(unsigned(switches(5 downto 0)));
@@ -184,6 +191,7 @@ begin
 							ah <= hbuff;
 						end if;
 					end if;
+					aispm <= switches(6);
 					s0 <= std_logic_vector(to_unsigned(as mod 10, 4)); -- update display for alarm set 
 					s1 <= std_logic_vector(to_unsigned(as / 10,  4));
 					m0 <= std_logic_vector(to_unsigned(am mod 10, 4));
@@ -203,10 +211,11 @@ begin
 		end if;
 	end process;
 					
-	hex0_disp: bcd_7seg port map(bcd => s0, display => hex0);
-	hex1_disp: bcd_7seg port map(bcd => s1, display => hex1);
-	hex2_disp: bcd_7seg port map(bcd => m0, display => hex2);
-	hex3_disp: bcd_7seg port map(bcd => m1, display => hex3);
-	hex4_disp: bcd_7seg port map(bcd => h0, display => hex4);
-	hex5_disp: bcd_7seg port map(bcd => h1, display => hex5);
+	hex0_disp : bcd_7seg port map(bcd => s0, display => hex0);
+	hex1_disp : bcd_7seg port map(bcd => s1, display => hex1);
+	hex2_disp : bcd_7seg port map(bcd => m0, display => hex2);
+	hex3_disp : bcd_7seg port map(bcd => m1, display => hex3);
+	hex4_disp : bcd_7seg port map(bcd => h0, display => hex4);
+	hex5_disp : bcd_7seg port map(bcd => h1, display => hex5);
+	ampm <= aispm when state = set_alarm else ispm;
 end a;
