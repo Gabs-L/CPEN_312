@@ -49,29 +49,31 @@ architecture a of AlarmClock is
 	signal key_sync : sync_arr := (others => (others => '1'));
 	signal key_db : std_logic_vector(3 downto 0) := (others =>  '1');
 	signal key_prev : std_logic_vector(3 downto 0) := (others =>  '1');
---	signal key_press : std_logic_vector(3 downto 0);
 	
+	--states
 	type states is (run, set_time, set_alarm);
 	signal state : states := run;	
+	signal state_prev : states := run;
 	
 begin
 	process(clk)
 	
 	variable sbuff, mbuff, hbuff : integer;
+	variable sprev, mprev, hprev : integer;
 	
 	begin
 	
-	--
-	-- debounce keys with for-loop
-	--
+		--
+		-- debounce keys with for-loop
+		--
 		if rising_edge(clk) then 
 			key_prev <= key_db;
 			for i in 0 to 3 loop
 				key_sync(i) <= key_sync(i) (2 downto 0) & keys(i);
 				if key_sync(i) = "0000" then
-					key_db(i) <= '0';  -- stable LOW → debounced LOW
+					key_db(i) <= '0';
 				elsif key_sync(i) = "1111" then
-					key_db(i) <= '1';  -- stable HIGH → debounced HIGH
+					key_db(i) <= '1';
 				end if;
 			end loop;
 			
@@ -96,20 +98,29 @@ begin
 				else
 					state <= run;
 				end if;
+				state_prev <= state;
+				
 				
 				--
-				--state logic and display
+				-- running (main mode)
 				--
-				case state is
-					when run =>
-						if count = freq then
-							count <= 0;
-							tick <= '1';
-						else
-							count <= count+1;
-							tick <= '0';
+			case state is
+				when run =>
+					-- restore state if exiting set_alarm mode
+					if state_prev = set_alarm then
+						s <= sprev;
+						m <= mprev;
+						h <= hprev;
 					end if;
 					
+					if count = freq then
+						count <= 0;
+						tick <= '1';
+					else
+						count <= count+1;
+						tick <= '0';
+					end if;
+				
 					if tick = '1' then
 						if s >= 59 then 
 							s <= 0;
@@ -127,7 +138,13 @@ begin
 							s <= s+1;
 						end if;
 					end if;
-				
+					s0 <= std_logic_vector(to_unsigned(s mod 10, 4));
+					s1 <= std_logic_vector(to_unsigned(s / 10,  4));
+					m0 <= std_logic_vector(to_unsigned(m mod 10, 4));
+					m1 <= std_logic_vector(to_unsigned(m / 10,  4));
+					h0 <= std_logic_vector(to_unsigned(h mod 10, 4));
+					h1 <= std_logic_vector(to_unsigned(h / 10,  4));
+					
 				--
 				-- set time
 				--
@@ -150,17 +167,48 @@ begin
 							h <= hbuff;
 						end if;
 					end if;
-				--set alarm =>
+					s0 <= std_logic_vector(to_unsigned(s mod 10, 4));
+					s1 <= std_logic_vector(to_unsigned(s / 10,  4));
+					m0 <= std_logic_vector(to_unsigned(m mod 10, 4));
+					m1 <= std_logic_vector(to_unsigned(m / 10,  4));
+					h0 <= std_logic_vector(to_unsigned(h mod 10, 4));
+					h1 <= std_logic_vector(to_unsigned(h / 10,  4));
+			
+				--
+				-- set alarm
+				--
 				when set_alarm =>
-					null;
-			end case;
-		end if;
-		s0 <= std_logic_vector(to_unsigned(s mod 10, 4));
-		s1 <= std_logic_vector(to_unsigned(s/10, 4));
-		m0 <= std_logic_vector(to_unsigned(m mod 10, 4));
-		m1 <= std_logic_vector(to_unsigned(m/10, 4));
-		h0 <= std_logic_vector(to_unsigned(h mod 10, 4));
-		h1 <= std_logic_vector(to_unsigned(h/10, 4));
+					if state_prev /= set_alarm then
+						sprev := s;
+						mprev := m;
+						hprev := h;
+					end if;
+					if key_db(1) = '0' and key_prev(1) = '1' then
+						sbuff := to_integer(unsigned(switches(5 downto 0)));
+						if (sbuff >= 0) and (sbuff <= 59) then
+							as <= sbuff;
+						end if;
+					end if;
+					if key_db(2) = '0' and key_prev(2) = '1' then
+						mbuff := to_integer(unsigned(switches(5 downto 0)));
+						if (mbuff >= 0) and (mbuff <= 59) then
+							am <= mbuff;
+						end if;
+					end if;
+					if key_db(3) = '0' and key_prev(3) = '1' then
+						hbuff := to_integer(unsigned(switches(5 downto 0)));
+						if (hbuff >= 1) and (hbuff <= 12) then
+							ah <= hbuff;
+						end if;
+					end if;
+					s0 <= std_logic_vector(to_unsigned(as mod 10, 4)); -- update display for alarm set 
+					s1 <= std_logic_vector(to_unsigned(as / 10,  4));
+					m0 <= std_logic_vector(to_unsigned(am mod 10, 4));
+					m1 <= std_logic_vector(to_unsigned(am / 10,  4));
+					h0 <= std_logic_vector(to_unsigned(ah mod 10, 4));
+					h1 <= std_logic_vector(to_unsigned(ah / 10,  4));
+				end case;
+			end if;
 		end if;
 	end process;
 					
