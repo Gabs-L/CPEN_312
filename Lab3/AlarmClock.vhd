@@ -56,6 +56,9 @@ architecture a of AlarmClock is
 	
 begin
 	process(clk)
+	
+	variable sbuff, mbuff, hbuff : integer;
+	
 	begin
 	
 	--
@@ -130,13 +133,22 @@ begin
 				--
 				when set_time =>
 					if key_db(1) = '0' and key_prev(1) = '1' then
-						s <= to_integer(unsigned(switches(5 downto 0)));
+						sbuff := to_integer(unsigned(switches(5 downto 0)));
+						if (sbuff >= 0) and (sbuff <= 59) then
+							s <= sbuff;
+						end if;
 					end if;
 					if key_db(2) = '0' and key_prev(2) = '1' then
-						m <= to_integer(unsigned(switches(5 downto 0)));
+						mbuff := to_integer(unsigned(switches(5 downto 0)));
+						if (mbuff >= 0) and (mbuff <= 59) then
+							m <= mbuff;
+						end if;
 					end if;
 					if key_db(3) = '0' and key_prev(3) = '1' then
-						h <= to_integer(unsigned(switches(5 downto 0)));
+						hbuff := to_integer(unsigned(switches(5 downto 0)));
+						if (hbuff >= 1) and (hbuff <= 12) then
+							h <= hbuff;
+						end if;
 					end if;
 				--set alarm =>
 				when set_alarm =>
