@@ -190,14 +190,16 @@ begin
 					m1 <= std_logic_vector(to_unsigned(am / 10,  4));
 					h0 <= std_logic_vector(to_unsigned(ah mod 10, 4));
 					h1 <= std_logic_vector(to_unsigned(ah / 10,  4));
-			end case;
-		end if;
-		s0 <= std_logic_vector(to_unsigned(s mod 10, 4));
-		s1 <= std_logic_vector(to_unsigned(s/10, 4));
-		m0 <= std_logic_vector(to_unsigned(m mod 10, 4));
-		m1 <= std_logic_vector(to_unsigned(m/10, 4));
-		h0 <= std_logic_vector(to_unsigned(h mod 10, 4));
-		h1 <= std_logic_vector(to_unsigned(h/10, 4));
+				end case;
+			end if;
+			if state /= set_alarm then
+				s0 <= std_logic_vector(to_unsigned(s mod 10, 4)); -- update display for all other operations
+				s1 <= std_logic_vector(to_unsigned(s/10, 4));
+				m0 <= std_logic_vector(to_unsigned(m mod 10, 4));
+				m1 <= std_logic_vector(to_unsigned(m/10, 4));
+				h0 <= std_logic_vector(to_unsigned(h mod 10, 4));
+				h1 <= std_logic_vector(to_unsigned(h/10, 4));
+			end if;
 		end if;
 	end process;
 					
