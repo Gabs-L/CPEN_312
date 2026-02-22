@@ -13,7 +13,7 @@ entity AlarmClock is
 	hex3 : out std_logic_vector(0 to 6);
 	hex4 : out std_logic_vector(0 to 6);
 	hex5 : out std_logic_vector(0 to 6);
-	ampm : out std_logic
+	ampm_led, alarm_led : out std_logic
 	);
 end AlarmClock;
 
@@ -55,6 +55,8 @@ architecture a of AlarmClock is
 	signal state : states := run;
 	signal state_prev : states := run;
 	
+	signal alarm_on : std_logic := '0';
+	
 begin
 	process(clk)
 	
@@ -86,6 +88,7 @@ begin
 				m <= 0;
 				h <= 12;
 				ispm <= '0';
+				alarm_on <= '0';
 				count <= 0;
 				tick <= '0';
 				
@@ -141,6 +144,12 @@ begin
 						else
 							s <= s+1;
 						end if;
+					end if;
+					
+					if (s = as) and (m = am) and (h = ah) and (ispm = aispm) and (switches(9) = '1') then
+						alarm_on <= '1';
+					elsif switches(9) = '0' then 
+						alarm_on <= '0';
 					end if;
 					
 				--
@@ -219,5 +228,6 @@ begin
 	hex3_disp : bcd_7seg port map(bcd => m1, display => hex3);
 	hex4_disp : bcd_7seg port map(bcd => h0, display => hex4);
 	hex5_disp : bcd_7seg port map(bcd => h1, display => hex5);
-	ampm <= aispm when state = set_alarm else ispm;
+	ampm_led <= aispm when state = set_alarm else ispm;
+	alarm_led <= alarm_on;
 end a;
