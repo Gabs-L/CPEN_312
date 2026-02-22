@@ -129,8 +129,10 @@ begin
 								m <= 0;
 								if h >= 12 then
 									h <= 1;
-									ispm <= not ispm;
 								else
+									if h = 11 then
+										ispm <= not ispm;
+									end if;
 									h <= h+1;
 								end if;
 							else
