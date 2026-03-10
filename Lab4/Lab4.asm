@@ -122,7 +122,6 @@ seqLoop:
 	clr a
 	movc a, @a+dptr
 	mov HEX0, a
-	
 	lcall waitChoice
 	jc seqEnd
 	inc r6
@@ -130,7 +129,6 @@ seqLoop:
 	cjne a, 07H, seqLoop
 	mov r6, #0
 	sjmp seqLoop
-	
 seqEnd:
 	ret
 	
