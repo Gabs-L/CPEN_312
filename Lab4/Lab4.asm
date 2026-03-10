@@ -28,6 +28,15 @@ clearDisplay:
 	mov HEX1, #OFF
 	mov HEX0, #OFF
 	ret
+	
+debounce:
+	mov r7, #10
+db_outer:
+	mov r0, #250
+db_inner:
+	djnz r0, db_inner
+	djnz r7, db_outer
+	ret
 
 waitHalf:
 	USING 0
@@ -41,10 +50,9 @@ L1: djnz r0, L1  ; 3 machine cycles-> 3*30ns*250=22.5us
     
 waitChoice:
 	jnb KEY.3, setState
+	jb SWA.3, waitHalf
 	lcall waitHalf
-	jb SWA.3, waitAgain
 	lcall waitHalf
-waitAgain:
 	ret
 
 setState:
