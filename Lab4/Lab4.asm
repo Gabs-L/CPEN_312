@@ -29,15 +29,6 @@ clearDisplay:
 	mov HEX0, #OFF
 	ret
 	
-debounce:
-	mov r7, #10
-db_outer:
-	mov r0, #250
-db_inner:
-	djnz r0, db_inner
-	djnz r7, db_outer
-	ret
-
 waitHalf:
 	USING 0
 	mov r2, #45 ;set to 90 for real time
@@ -91,6 +82,50 @@ s111:
 	cjne a, #111B, setState
 	lcall state_111
 	ljmp setState
+	
+displayFrame:
+	mov r5, dph
+	mov r4, dpl
+	
+	mov a, r6
+	mov b, #6
+	mul ab
+	mov b, a
+	mov a, dpl
+	clr c
+	add a, b
+	mov dpl, a
+	mov a, dph
+	addc a, #0
+	mov dph, a
+	
+	clr a
+	movc a, @a+dptr
+	mov HEX5, a
+	inc dptr
+	clr a
+	movc a, @a+dptr
+	mov HEX4, a
+	inc dptr
+	clr a
+	movc a, @a+dptr
+	mov HEX3, a
+	inc dptr
+	clr a
+	movc a, @a+dptr
+	mov HEX2, a
+	inc dptr
+	clr a
+	movc a, @a+dptr
+	mov HEX1, a
+	inc dptr
+	clr a
+	movc a, @a+dptr
+	mov HEX0, a
+
+	mov dph, r5
+	mov dpl, r4
+	ret
 	
 state_000:
 	mov HEX5, #N_9
@@ -150,59 +185,85 @@ seq_011:
 	db N_2, N_1, N_5, N_1, N_1, N_5
 	db N_7, N_2, N_1, N_5, N_1, N_1
 	
-displayFrame:
-	mov r5, dph
-	mov r4, dpl
-	
-	mov a, r6
-	mov b, #6
-	mul ab
-	mov b, a
-	mov a, dpl
-	add a, b
-	mov dpl, a
-	mov a, dph
-	addc a, #0
-	mov dph, a
-	
-	clr a
-	movc a, @a+dptr
-	mov HEX5, a
-	inc dptr
-	clr a
-	movc a, @a+dptr
-	mov HEX4, a
-	inc dptr
-	clr a
-	movc a, @a+dptr
-	mov HEX3, a
-	inc dptr
-	clr a
-	movc a, @a+dptr
-	mov HEX2, a
-	inc dptr
-	clr a
-	movc a, @a+dptr
-	mov HEX1, a
-	inc dptr
-	clr a
-	movc a, @a+dptr
-	mov HEX0, a
-
-	mov dph, r5
-	mov dpl, r4
-	ret
-	
 state_100:
-	ret
-
+	mov HEX5, #N_2
+	mov HEX4, #N_1
+	mov HEX3, #N_5
+	mov HEX2, #N_1
+	mov HEX1, #N_1
+	mov HEX0, #N_5
+	lcall waitChoice
+	lcall clearDisplay
+	lcall waitChoice
+	sjmp state_100
+	
 state_101:
-	ret
-
+	mov dptr, #seq_101
+	mov r6, #0
+s101_loop:
+	lcall displayFrame
+	lcall waitChoice
+	inc r6
+	cjne r6, #7, s101_loop
+	mov r6, #0
+	ljmp s101_loop
+seq_101:
+	db OFF, OFF, OFF, OFF, OFF, OFF
+	db N_9, OFF, OFF, OFF, OFF, OFF
+	db N_9, N_7, OFF, OFF, OFF, OFF
+	db N_9, N_7, N_2, OFF, OFF, OFF
+	db N_9, N_7, N_2, N_1, OFF, OFF
+	db N_9, N_7, N_2, N_1, N_5, OFF
+	db N_9, N_7, N_2, N_1, N_5, N_1
+	
 state_110:
-	ret
+	mov dptr, #seq_110
+	mov r6, #0
+s110_loop:
+	lcall displayFrame
+	lcall waitChoice
+	inc r6
+	cjne r6, #3, s110_loop
+	mov r6, #0
+	ljmp s110_loop
+	
+seq_110:
+	db L_H, L_E, L_L, L_L, L_O, OFF
+	db N_9, N_7, N_2, N_1, N_5, N_1
+	db L_C, L_P, L_N, N_3, N_1, N_2
 
 state_111:
+	jnb KEY.3, exit_111
+	mov HEX5, #OFF
+	mov HEX4, #OFF
+	mov HEX3, #OFF
+	mov HEX2, #OFF
+	mov HEX1, #OFF
+	mov HEX0, #OFF
+	
+	jnb SWA.5, sw4
+	mov HEX5, #N_9
+sw4:
+	jnb SWA.4, sw3
+	mov HEX4, #N_7
+sw3:
+	jnb SWA.3, sw2
+	mov HEX3, #N_2
+sw2:
+	jnb SWA.2, sw1
+	mov HEX2, #N_1
+sw1:
+	jnb SWA.1, sw0
+	mov HEX1, #N_5
+sw0:
+	jnb SWA.0, state_111
+	mov HEX0, #N_1
+	sjmp state_111
+exit_111:
+	lcall setState
 	ret
+	
+	
 END
+
 	
