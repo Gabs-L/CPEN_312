@@ -20,8 +20,40 @@ CSEG
 ; After calculation, any key from 0-9 should clear and display the new input value
 ;----------------------------------------------------
 tri32:
-	
+
 	ret
+
+;----------------------------------------------------
+; Negate value x = -x
+;----------------------------------------------------
+neg32:
+	mov a, x+0
+	cpl a
+	mov x+0, a
+	mov a, x+1
+	cpl a
+	mov x+1, a
+	mov a, x+2
+	cpl a
+	mov x+2, a
+	mov a, x+3
+	cpl a
+	mov x+3, a
+	clr c
+	mov a, x+0
+	add a, #1
+	mov x+0, a
+	mov a, x+1
+	addc a, #0
+	mov x+1, a
+	mov a, x+2
+	addc a, #0
+	mov x+2, a
+	mov a, x+3
+	addc a, #0
+	mov x+3, a
+	ret
+
 ;----------------------------------------------------
 ; Converts the 32-bit hex number in 'x' to a 
 ; 10-digit packed BCD in 'bcd' using the
@@ -184,17 +216,17 @@ sub32:
 	push acc
 	push psw
 	clr c
-	mov a, x+0
-	subb a, y+0
+	mov a, y+0
+	subb a, x+0
 	mov x+0, a
-	mov a, x+1
-	subb a, y+1
+	mov a, y+1
+	subb a, x+1
 	mov x+1, a
-	mov a, x+2
-	subb a, y+2
+	mov a, y+2
+	subb a, x+2
 	mov x+2, a
-	mov a, x+3
-	subb a, y+3
+	mov a, y+3
+	subb a, x+3
 	mov x+3, a
 	mov mf, c
 	pop psw

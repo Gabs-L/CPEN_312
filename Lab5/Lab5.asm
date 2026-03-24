@@ -143,10 +143,15 @@ doADD:
 doSUB:
 	cjne a, #isSUB, doMUL
 	lcall sub32
-	jb mf, error
+	jnb mf, positiveSub
+	setb LEDRA.0
+	lcall neg32
+	sjmp doneSub
+positiveSub:
+	clr LEDRA.0
+doneSub:
 	lcall hex2bcd
 	lcall Display
-	clr LEDRA.0
 	ljmp forever
 
 doMUL:
@@ -185,16 +190,4 @@ error:
 	mov HEX0, #blank
 	ljmp error
 
-; clearBCD:
-; 	mov bcd, #0
-; 	mov bcd+1, #0
-; 	mov bcd+2, #0
-; 	mov bcd+3, #0
-; 	mov bcd+4, #0
-; 	ret
-
-; opUseAns:
-; 	mov operand1+0, prevAns+0
-; 	mov operand1+1, prevAns+1
-; 	mov operand1+2, prevAns+2
-; 	mov operand1+3, prevAns+3
+	;somethng here
