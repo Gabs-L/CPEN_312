@@ -9,7 +9,19 @@ $NOLIST
 ;----------------------------------------------------
 
 CSEG
-
+;----------------------------------------------------
+; depending on position of SW1, Either:
+; a) (DOWN) Two sides of a triangle are given, and the hypoteneus ic calculated
+;	C = sqrt(A^2+B^2)
+; b) (UP) One side and the hypoteneus is given, and the missing side is calculated
+;	A = sqrt(C^2-B^2)
+; 
+; Assume that all inputs are positive. if result is negative, display positive number and turn on LED0
+; After calculation, any key from 0-9 should clear and display the new input value
+;----------------------------------------------------
+tri32:
+	
+	ret
 ;----------------------------------------------------
 ; Converts the 32-bit hex number in 'x' to a 
 ; 10-digit packed BCD in 'bcd' using the

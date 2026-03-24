@@ -112,13 +112,18 @@ isOperation:
 
 storeOp:
 	lcall bcd2hex
-	jb mf, error
+	jnb mf, noError
+	ljmp error
+noError:
 	lcall copy_xy
 	Load_X(0)
 	lcall hex2BCD
 	lcall Display
 	ljmp forever
 
+noMoreKeys:
+	ljmp forever
+	
 doEQU:
 	lcall bcd2hex
 	jb mf, error
@@ -136,9 +141,39 @@ doADD:
 	ljmp forever
 
 doSUB:
+	cjne a, #isSUB, doMUL
+	lcall sub32
+	jb mf, error
+	lcall hex2bcd
+	lcall Display
+	clr LEDRA.0
 	ljmp forever
 
-noMoreKeys:
+doMUL:
+	cjne a, #isMUL, doDIV
+	lcall mul32
+	jb mf, error
+	lcall hex2bcd
+	lcall Display
+	clr LEDRA.0
+	ljmp forever
+
+doDIV:
+	cjne a, #isDIV, doTRI
+	lcall div32
+	jb mf, error
+	lcall hex2bcd
+	lcall Display
+	clr LEDRA.0
+	ljmp forever
+
+doTRI:
+	cjne a, #isTRI, noMoreKeys
+	lcall tri32
+	jb mf, error
+	lcall hex2bcd
+	lcall Display
+	clr LEDRA.0
 	ljmp forever
 
 error:
