@@ -1,12 +1,5 @@
-$MODDE0CV
-
-	CSEG at 0
-	ljmp main_code
-
-	DSEG at 30H
-bcd:	ds 5
-
-	CSEG
+$NOLIST
+CSEG
 
 ; Look-up table for 7-seg displays
 myLUT:
@@ -263,23 +256,4 @@ keypad_90deg:
 	clr c
 	ret
 	
-main_code:
-	mov SP, #7FH
-	clr a
-	mov LEDRA, a
-	mov LEDRB, a
-	mov bcd+0, a
-	mov bcd+1, a
-	mov bcd+2, a
-	mov bcd+3, a
-	mov bcd+4, a
-	lcall Configure_Keypad_Pins
-
-forever:
-	lcall Keypad
-	lcall Display
-	jnc forever
-	lcall Shift_Digits_Left
-	ljmp forever
-	
-end
+$LIST

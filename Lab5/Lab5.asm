@@ -1,24 +1,24 @@
 $MODDE0CV
 CSEG at 0H
 ljmp mainCode
-$include(math32.asm)
-$include(readKeypad.asm)
+DSEG at 30H
 
-DSEG at 35H
 x: ds 4
 y: ds 4
-mf: ds 1
-
+bcd: ds 5
 tri_a: ds 4
 tri_b: ds 4
 tri_sq: ds 4
-
 opCode: ds 1
 
 BSEG
 newInput: dbit 1
 negFlag: dbit 1
+mf: dbit 1
+$include(math32.asm)
+$include(readKeypad.asm)
 
+CSEG
 isADD EQU 0
 isSUB EQU 1
 isMUL EQU 2
@@ -30,7 +30,6 @@ r EQU 00101111B ; r
 o EQU 00100011B ; o
 blank EQU 0FFH ; blank
 
-CSEG
 mainCode:
 	mov SP, #07FH
 	clr a
@@ -68,10 +67,10 @@ newDigit:
 	clr LEDRA.0
 	Load_X(0)
 	mov bcd+0, r7
-	mov bcd+1, 0
-	mov bcd+2, 0
-	mov bcd+3, 0
-	mov bcd+4, 0
+	mov bcd+1, #0
+	mov bcd+2, #0
+	mov bcd+3, #0
+	mov bcd+4, #0
 	lcall bcd2hex
 	jb mf, tooBig
 	lcall hex2bcd
@@ -108,7 +107,7 @@ isOperation:
 		ljmp storeOp
 	
 	check_EQU:
-		cjne r7, #07FH, noMoreKeys
+		cjne r7, #0FH, noMoreKeys
 		ljmp doEQU
 
 storeOp:
@@ -121,7 +120,6 @@ storeOp:
 	ljmp forever
 
 doEQU:
-	cjne r7, #0FH, noMoreKeys
 	lcall bcd2hex
 	jb mf, error
 	setb newInput
@@ -144,13 +142,13 @@ noMoreKeys:
 	ljmp forever
 
 error:
-	mov HEX5, E
-	mov HEX4, r
-	mov HEX3, r
-	mov HEX2, o
-	mov HEX1, r
-	mov HEX0, blank
-	ljmp forever
+	mov HEX5, #E
+	mov HEX4, #r
+	mov HEX3, #r
+	mov HEX2, #o
+	mov HEX1, #r
+	mov HEX0, #blank
+	ljmp error
 
 ; clearBCD:
 ; 	mov bcd, #0
