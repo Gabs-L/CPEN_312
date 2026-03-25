@@ -5,24 +5,173 @@ $NOLIST
 ; binary to bcd and bcd to binary conversion subroutines.
 ;
 ; 2011-2025 by Jesus Calvino-Fraga
+; 2026 Edited by Gabriel L. (added tri32 and neg32)
 ;
 ;----------------------------------------------------
 
 CSEG
 ;----------------------------------------------------
 ; depending on position of SW1, Either:
-; a) (DOWN) Two sides of a triangle are given, and the hypoteneus ic calculated
+; a) (DOWN) Two sides of a triangle are given, and the hypotenus is calculated
 ;	C = sqrt(A^2+B^2)
-; b) (UP) One side and the hypoteneus is given, and the missing side is calculated
+; b) (UP) One side and the hypotenus is given, and the missing side is calculated
 ;	A = sqrt(C^2-B^2)
 ; 
 ; Assume that all inputs are positive. if result is negative, display positive number and turn on LED0
 ; After calculation, any key from 0-9 should clear and display the new input value
 ;----------------------------------------------------
 tri32:
+	push acc
+	push psw
+	push AR0
+	push AR1
+	push AR2
+	push AR3
+	push AR4
+	push AR5
+	push AR6
+	push AR7
+	clr LEDRA.0
 
+	mov tri_a+0, x+0
+	mov tri_a+1, x+1
+	mov tri_a+2, x+2
+	mov tri_a+3, x+3
+	mov tri_b+0, y+0
+	mov tri_b+1, y+1
+	mov tri_b+2, y+2
+	mov tri_b+3, y+3
+
+	lcall copy_xy ; y = x
+	lcall mul32 ; y = x*y = x^2
+	jb mf, tri32_overflow ; check if the square is too big
+
+	mov tri_a+0, x+0 ; store output into "tri_a"
+	mov tri_a+1, x+1
+	mov tri_a+2, x+2
+	mov tri_a+3, x+3
+
+	mov x+0, tri_b+0
+	mov x+1, tri_b+1
+	mov x+2, tri_b+2
+	mov x+3, tri_b+3
+
+	lcall copy_xy ; copy y into x
+	lcall mul32 ; square
+	jb mf, tri32_overflow ; check if square overflows
+	mov tri_b+0, x+0 ; store output into "tri_b"
+	mov tri_b+1, x+1
+	mov tri_b+2, x+2
+	mov tri_b+3, x+3
+	jnb SWA.1, tri32_down
+	sjmp tri32_up
+
+tri32_overflow:
+	setb mf
+	ljmp tri32_done
+
+tri32_up: ; for A = sqrt(C^2-B^2), computes C^2-B^2 and hands off to tri32_sqrt
+	mov x+0, tri_a+0 ; C^2
+	mov x+1, tri_a+1
+	mov x+2, tri_a+2
+	mov x+3, tri_a+3
+	mov y+0, tri_b+0 ; B^2
+	mov y+1, tri_b+1
+	mov y+2, tri_b+2
+	mov y+3, tri_b+3
+	
+	lcall x_gteq_y ; C^2 >= B^2?
+	jb mf, tri32_sub ; result is positive
+	setb LEDRA.0
+	lcall xchg_xy
+
+tri32_sub:
+	lcall sub32
+	clr mf
+	sjmp tri32_sqrt
+
+tri32_down: ; C = sqrt(A^2+B^2), computes A^2+B^2 and hands off to tri32_sqrt
+	mov x+0, tri_a+0
+	mov x+1, tri_a+1
+	mov x+2, tri_a+2
+	mov x+3, tri_a+3
+	mov y+0, tri_b+0
+	mov y+1, tri_b+1
+	mov y+2, tri_b+2
+	mov y+3, tri_b+3
+	lcall add32
+	jb mf, tri32_overflow
+
+tri32_sqrt:
+	mov tri_sq+0, x+0
+	mov tri_sq+1, x+1
+	mov tri_sq+2, x+2
+	mov tri_sq+3, x+3
+	mov tri_a+0, #0
+	mov tri_a+1, #0
+	mov tri_a+2, #0
+	mov tri_a+3, #0
+	mov r6, #16
+	mov r5, #0x80
+	mov r4, #0x00
+
+tri32_sqrtLoop: ; iterates through current candidate stored in tri_a
+	mov x+0, tri_a+0
+	mov x+1, tri_a+1
+	mov x+2, tri_a+2
+	mov x+3, tri_a+3
+	mov a, r4 ; x candidate
+	orl a, x+0
+	mov x+0, a
+	mov a, r5
+	orl a, x+1
+	mov x+1, a
+
+	lcall copy_xy ; move candidate into y
+	lcall mul32 ; square to see if overflows
+	jb mf, tri32_sqrtNext ; if too big, skip
+
+	mov y+0, tri_sq+0
+	mov y+1, tri_sq+1
+	mov y+2, tri_sq+2
+	mov y+3, tri_sq+3
+	lcall x_lteq_y
+	jnb mf, tri32_sqrtNext
+	mov a, r4
+	orl a, tri_a+0
+	mov tri_a+0, a
+	mov a, r5
+	orl a, tri_a+1
+	mov tri_a+1, a
+
+tri32_sqrtNext:
+	clr c
+	mov a, r5
+	rrc a
+	mov r5, a
+	mov a, r4
+	rrc a
+	mov r4, a
+	djnz r6, tri32_sqrtLoop
+	mov x+0, tri_a+0
+	mov x+1, tri_a+1
+	mov x+2, tri_a+2
+	mov x+3, tri_a+3
+	clr mf
+	sjmp tri32_done
+
+tri32_done:
+	pop AR7
+	pop AR6
+	pop AR5
+	pop AR4
+	pop AR3
+	pop AR2
+	pop AR1
+	pop AR0
+	pop psw
+	pop acc
 	ret
-
 ;----------------------------------------------------
 ; Negate value x = -x
 ;----------------------------------------------------
