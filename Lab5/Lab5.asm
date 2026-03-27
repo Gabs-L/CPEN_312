@@ -165,6 +165,7 @@ doMUL:
 
 doDIV:
 	cjne a, #isDIV, doTRI
+	lcall xchg_xy
 	lcall div32
 	jb mf, error
 	lcall hex2bcd
