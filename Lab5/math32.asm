@@ -25,7 +25,6 @@ tri32:
     push psw
     push AR0
     push AR1
-    clr LEDRA.0
  
     ; Load tri_a from y (first operand, stored by storeOp via copy_xy)
     ; Load tri_b from x (second operand, current input)
@@ -100,11 +99,10 @@ tri32_up: ; A = sqrt(C^2 - B^2)  where tri_a=C (hypotenuse), tri_b=B
     lcall xchg_xy ; now x = tri_a^2 (C^2), y = tri_b^2 (B^2)
     lcall x_lt_y  ; mf=1 if C^2 < B^2 (imaginary)
     jnb mf, tri32_real
+	setb mf
     ; Imaginary: C^2 < B^2, result would be negative -> light LED, compute B^2 - C^2
-    setb LEDRA.0
     ; x = tri_a^2 (C^2), y = tri_b^2 (B^2); sub32: x = y - x = B^2 - C^2
-    lcall sub32
-    ljmp tri32_sqrt
+    ljmp tri32_done
  
 tri32_real:
     clr LEDRA.0

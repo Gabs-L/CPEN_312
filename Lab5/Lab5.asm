@@ -178,7 +178,6 @@ doTRI:
 	jb mf, error
 	lcall hex2bcd
 	lcall Display
-	clr LEDRA.0
 	ljmp forever
 
 error:
