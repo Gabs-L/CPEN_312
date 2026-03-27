@@ -188,6 +188,8 @@ error:
 	mov HEX2, #o
 	mov HEX1, #r
 	mov HEX0, #blank
+	clr a
+	mov LEDRA, a
 	ljmp error
 
 	;somethng here

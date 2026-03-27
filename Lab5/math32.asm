@@ -12,33 +12,31 @@ $NOLIST
 CSEG
 ;----------------------------------------------------
 ; depending on position of SW1, Either:
-; a) (DOWN) Two sides of a triangle are given, and the hypotenuse is calculated
+; a) (DOWN) Two sides of a triangle are given, and the hypotenuse is calculated, I assume A and B are the first and second operands respectively
 ;	C = sqrt(A^2+B^2)
-; b) (UP) One side and the hypotenuse is given, and the missing side is calculated
+; b) (UP) One side and the hypotenuse is given, and the missing side is calculated, I assume C and B are the first and second operands respecitvely
 ;	A = sqrt(C^2-B^2)
+; if whoever is marking has an issue with that, simply swap tri_a and tri_b in the first loading step of tri32
 ; 
 ; Assume that all inputs are positive. if result is negative, display positive number and turn on LED0
 ; After calculation, any key from 0-9 should clear and display the new input value
 ;----------------------------------------------------
-tri32:
+tri32: 
 	push acc
     push psw
     push AR0
     push AR1
  
-    ; Load tri_a from y (first operand, stored by storeOp via copy_xy)
-    ; Load tri_b from x (second operand, current input)
-    mov tri_a+0, y+0
+    mov tri_a+0, y+0	; Load tri_a from y (first operand, from copy_xy)
     mov tri_a+1, y+1
     mov tri_a+2, y+2
     mov tri_a+3, y+3
-    mov tri_b+0, x+0
+    mov tri_b+0, x+0	; Load tri_b from x (second operand, current input)
     mov tri_b+1, x+1
     mov tri_b+2, x+2
     mov tri_b+3, x+3
  
-    ; Compute tri_a^2: x = tri_a, y = tri_a, then mul32 -> x = tri_a^2
-    mov x+0, tri_a+0
+    mov x+0, tri_a+0	; move y into x and y then square such that x = tri_a^2
     mov x+1, tri_a+1
     mov x+2, tri_a+2
     mov x+3, tri_a+3
@@ -49,14 +47,12 @@ tri32:
     lcall mul32
     jb mf, tri32_overflow
  
-    ; Save tri_a^2 into tri_sq
-    mov tri_sq+0, x+0
+    mov tri_sq+0, x+0	; save tri_a^2 into tri_sq
     mov tri_sq+1, x+1
     mov tri_sq+2, x+2
     mov tri_sq+3, x+3
  
-    ; Compute tri_b^2: x = tri_b, y = tri_b, then mul32 -> x = tri_b^2
-    mov x+0, tri_b+0
+    mov x+0, tri_b+0	; load tri_b (second input) into x and y
     mov x+1, tri_b+1
     mov x+2, tri_b+2
     mov x+3, tri_b+3
@@ -64,93 +60,71 @@ tri32:
     mov y+1, tri_b+1
     mov y+2, tri_b+2
     mov y+3, tri_b+3
-    lcall mul32 ; x = tri_b^2
+    lcall mul32			; x = tri_b^2
     jb mf, tri32_overflow
- 
-    ; Now: tri_sq = tri_a^2, x = tri_b^2
-    ; sub32 computes x = y - x, add32 computes x = x + y
-    ; For DOWN: need tri_a^2 + tri_b^2  -> put tri_a^2 in x, tri_b^2 in y (or vice versa, add is commutative)
-    ; For UP:   need tri_a^2 - tri_b^2  -> sub32 does x = y - x
-    ;           so put tri_b^2 in x, tri_a^2 in y -> result = tri_a^2 - tri_b^2
- 
-    jb SWA.1, tri32_up
+    jb SWA.1, tri32_up	; check switch 1 state
+	ljmp tri32_down ; jump over tri32_done to reach tri32_down
+
+tri32_done:	; pop pushed registers and end operation. I put it here so I could be within -128/+127 of all calls
+    pop AR1
+    pop AR0
+    pop psw
+    pop acc
+    ret
  
 tri32_down: ; C = sqrt(A^2 + B^2)
-    ; x = tri_b^2, load tri_a^2 into y, then add32: x = x + y = tri_b^2 + tri_a^2
-    mov y+0, tri_sq+0
+    mov y+0, tri_sq+0	
     mov y+1, tri_sq+1
     mov y+2, tri_sq+2
     mov y+3, tri_sq+3
-    lcall add32
+    lcall add32			; add tri_b^2 (stored in x) and tri_a^2 (stored in tri_sq then moved to y)
     jb mf, tri32_overflow
-    ljmp tri32_sqrt
+    ljmp tri32_sqrt		; send to sqrt solver
  
-tri32_up: ; A = sqrt(C^2 - B^2)  where tri_a=C (hypotenuse), tri_b=B
-    ; x = tri_b^2, y will be tri_a^2 (=C^2)
-    ; sub32 computes x = y - x, so set y = tri_a^2 (C^2), x = tri_b^2
-    ; result = C^2 - B^2
+tri32_up:
     mov y+0, tri_sq+0
     mov y+1, tri_sq+1
     mov y+2, tri_sq+2
     mov y+3, tri_sq+3
-    ; Check if C^2 < B^2 (imaginary result): x_lt_y checks if x < y, i.e. tri_b^2 < tri_a^2
-    ; If tri_a^2 < tri_b^2, result is imaginary: need x=tri_a^2, y=tri_b^2 for x_lt_y
-    ; Swap roles: put C^2 in x, B^2 in y for the comparison
-    lcall xchg_xy ; now x = tri_a^2 (C^2), y = tri_b^2 (B^2)
-    lcall x_lt_y  ; mf=1 if C^2 < B^2 (imaginary)
-    jnb mf, tri32_real
-	setb mf
-    ; Imaginary: C^2 < B^2, result would be negative -> light LED, compute B^2 - C^2
-    ; x = tri_a^2 (C^2), y = tri_b^2 (B^2); sub32: x = y - x = B^2 - C^2
-    ljmp tri32_done
+    lcall x_gt_y  ; mf=1 if C^2 < B^2 (imaginary) to throw error
+    jb mf, tri32_overflow ; throw an error if mf is up (imaginary answer)
+	clr LEDRA.0
+	lcall sub32 ; otherwise subtract then call the sqrt solver
+	ljmp tri32_sqrt
  
-tri32_real:
-    clr LEDRA.0
-    ; x = tri_a^2 (C^2), y = tri_b^2 (B^2); sub32: x = y - x = B^2 - C^2... wrong order
-    ; We want C^2 - B^2: need x = B^2, y = C^2 -> sub32: x = y - x = C^2 - B^2
-    lcall xchg_xy ; x = tri_b^2 (B^2), y = tri_a^2 (C^2)
-    lcall sub32   ; x = y - x = C^2 - B^2
-    ljmp tri32_sqrt
- 
-tri32_overflow:
+tri32_overflow: ; if called, raise math flag and end operation
     setb mf
     ljmp tri32_done
  
-tri32_sqrt:
-    mov a, x+0
+tri32_sqrt: ; calculates square root
+    mov a, x+0	; checks if x is 0
     orl a, x+1
     orl a, x+2
     orl a, x+3
-    jnz tri32_sqrtStart
+    jnz tri32_sqrtStart ; calls the sqrt loop initiator
     clr mf
     ljmp tri32_done
  
 tri32_sqrtStart:
-    ; Save radicand into tri_sq
-    mov tri_sq+0, x+0
+    mov tri_sq+0, x+0	; Save radicand into tri_sq
     mov tri_sq+1, x+1
     mov tri_sq+2, x+2
     mov tri_sq+3, x+3
  
-    ; Initial guess y = radicand (will converge quickly)
-    mov y+0, x+0
+    mov y+0, x+0	; Initial guess y = radicand
     mov y+1, x+1
     mov y+2, x+2
     mov y+3, x+3
  
-tri32_sqrtLoop: ; Babylonian/Heron's method: next = (guess + radicand/guess) / 2
-    ; x = radicand (tri_sq), y = current guess
-    ; Step 1: x = radicand / guess  ->  div32 needs x=radicand, y=guess (already set)
-    mov x+0, tri_sq+0
-    mov x+1, tri_sq+1
+tri32_sqrtLoop: ; Babylonian/Heron's method using nextGuess = (guess + radicand/guess) / 2
+    mov x+0, tri_sq+0	; x = radicand (tri_sq), y = current guess
+    mov x+1, tri_sq+1	
     mov x+2, tri_sq+2
     mov x+3, tri_sq+3
-    lcall div32           ; x = radicand / guess
-    ; Step 2: x = x + y = (radicand/guess) + guess
-    lcall add32           ; x = x + y
-    ; Step 3: x = x / 2  (arithmetic right shift)
+    lcall div32	; divide by current guess
+    lcall add32	; x = x + y
     clr c
-    mov a, x+3
+    mov a, x+3	 ; set x = x / 2  (for next guess)
     rrc a
     mov x+3, a
     mov a, x+2
@@ -161,34 +135,24 @@ tri32_sqrtLoop: ; Babylonian/Heron's method: next = (guess + radicand/guess) / 2
     mov x+1, a
     mov a, x+0
     rrc a
-    mov x+0, a            ; x = next_guess
+    mov x+0, a	; x = next guess
  
-    ; If next_guess < current_guess: update guess and iterate
-    lcall x_lt_y          ; mf=1 if next_guess (x) < current_guess (y)
-    jb mf, tri32_sqrtNext
+    lcall x_lt_y	; If next_guess < current_guess: update guess and iterate
+    jb mf, tri32_sqrtNext	; if the next guess is somehow less than next guess, raise math flag
  
-    ; next_guess >= current_guess: converged, return current guess (y)
-    mov x+0, y+0
+    mov x+0, y+0	; if next_guess >= current_guess then guesses have converged, return current guess (y)
     mov x+1, y+1
     mov x+2, y+2
     mov x+3, y+3
     clr mf
-    ljmp tri32_done
+    ljmp tri32_done ; end looping
  
-tri32_sqrtNext:
-    ; Update current guess to next_guess
+tri32_sqrtNext:	; Update current guess to next_guess
     mov y+0, x+0
     mov y+1, x+1
     mov y+2, x+2
     mov y+3, x+3
     ljmp tri32_sqrtLoop
- 
-tri32_done:
-    pop AR1
-    pop AR0
-    pop psw
-    pop acc
-    ret
 
 ;----------------------------------------------------
 ; Negate value x = -x
